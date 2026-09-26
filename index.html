@@ -17,64 +17,44 @@
   </div>
 
   <div class="app-container">
-    <!-- Encabezado -->
-    <header class="app-header">
-      <div class="header-brand">
-        <div class="logo-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
-            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-            <line x1="12" y1="19" x2="12" y2="22"/>
-          </svg>
-        </div>
-        <div>
-          <h1>Detector de Ruido Escolar</h1>
-          <p class="subtitle">Semáforo acústico inteligente y control verbal de aula</p>
-        </div>
-      </div>
-
-      <div class="header-actions">
-        <button id="btn-toggle-controls" class="btn-icon" title="Ocultar o Mostrar Controles Inferiores" aria-label="Alternar controles">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-            <circle cx="12" cy="12" r="3"/>
-          </svg>
-        </button>
-        <button id="btn-demo-mode" class="btn-icon" title="Modo Prueba / Simulación de sonido" aria-label="Probar sin micrófono">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-          </svg>
-        </button>
-        <button id="btn-fullscreen" class="btn-icon" title="Modo Pantalla Completa" aria-label="Pantalla completa">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-          </svg>
-        </button>
-        <button id="btn-sound-toggle" class="btn-icon active" title="Sonido de alerta al límite" aria-label="Activar o desactivar sonido">
-          <svg id="sound-icon-on" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-          </svg>
-        </button>
-      </div>
-    </header>
-
     <!-- Área Principal de Visualización: Semáforo Arriba y Controles Abajo -->
     <main class="dashboard-grid">
       <!-- Sección Superior Principal: Semáforo Monumental -->
       <section class="traffic-section card">
         <div class="traffic-section-header">
-          <div class="status-badge" id="status-badge">
-            <span class="pulse-dot"></span>
-            <span id="status-text">Listo para iniciar</span>
-          </div>
-
-          <!-- Marcador Superior de Infracciones -->
-          <div class="traffic-counter-pill" title="Infracciones acumuladas">
-            <span class="traffic-pill-label">Infracciones:</span>
+          <!-- Marcador Superior de Infracciones Configurable -->
+          <button type="button" id="traffic-penalty-btn" class="traffic-counter-pill clickable-pill" title="Haz clic para decidir qué sanción se acumula (puntos, tareas, minutos, etc.)">
+            <span class="traffic-pill-label" id="traffic-pill-label">Sanciones:</span>
             <span class="traffic-pill-number" id="traffic-top-count">0</span>
-            <span class="traffic-pill-tag">pts</span>
+            <span class="traffic-pill-tag" id="traffic-top-unit">pts</span>
+            <span class="traffic-pill-edit" title="Personalizar">✏️</span>
+          </button>
+
+          <!-- Acciones Rápidas Limpias en la Esquina Superior -->
+          <div class="header-actions">
+            <button id="btn-toggle-controls" class="btn-icon" title="Ocultar o Mostrar Controles Inferiores" aria-label="Alternar controles">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+            <button id="btn-demo-mode" class="btn-icon" title="Modo Prueba / Simulación de sonido" aria-label="Probar sin micrófono">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+              </svg>
+            </button>
+            <button id="btn-fullscreen" class="btn-icon" title="Modo Pantalla Completa" aria-label="Pantalla completa">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+              </svg>
+            </button>
+            <button id="btn-sound-toggle" class="btn-icon active" title="Sonido de alerta al límite" aria-label="Activar o desactivar sonido">
+              <svg id="sound-icon-on" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+              </svg>
+            </button>
           </div>
         </div>
 
@@ -143,18 +123,39 @@
         <div class="counter-card card">
           <div class="counter-header">
             <div>
-              <h3>Infracciones de Ruido</h3>
-              <p class="card-caption">Veces que se alcanzó el nivel rojo</p>
+              <h3 id="counter-card-title">Sanciones Acumuladas</h3>
+              <p class="card-caption">Consecuencias registradas por límite de ruido</p>
             </div>
-            <span class="live-pill" id="live-indicator">EN PAUSA</span>
+            <button type="button" id="btn-open-penalty-card" class="btn-subtle" title="Cambiar tipo de consecuencia">
+              ⚙️ Cambiar sanción
+            </button>
           </div>
 
           <div class="counter-display">
             <div class="counter-value-wrapper">
               <span class="counter-number" id="violation-count">0</span>
-              <span class="counter-tag">puntos</span>
+              <span class="counter-tag" id="counter-unit-tag">pts</span>
             </div>
             <div id="floating-plus-container" class="floating-container"></div>
+          </div>
+
+          <!-- Selector rápido de tipo de sanción -->
+          <div class="penalty-quick-row">
+            <span class="penalty-quick-label">Consecuencia por infracción:</span>
+            <div class="penalty-quick-chips">
+              <button type="button" class="btn-penalty-chip active" data-unit="pts" data-label="Puntos Menos" data-tag="pts" data-floating="-1 pt">
+                📝 -1 Punto
+              </button>
+              <button type="button" class="btn-penalty-chip" data-unit="tareas" data-label="Tareas Extra" data-tag="tareas" data-floating="+1 tarea">
+                📚 1 Tarea
+              </button>
+              <button type="button" class="btn-penalty-chip" data-unit="min" data-label="Minutos Receso" data-tag="min" data-floating="-1 min">
+                ⏱️ -1 Min
+              </button>
+              <button type="button" class="btn-penalty-chip" data-unit="custom" data-label="Personalizado">
+                ✏️ Otro...
+              </button>
+            </div>
           </div>
 
           <div class="cooldown-bar-wrapper" id="cooldown-wrapper">
@@ -346,6 +347,55 @@
         <div class="wordlist-footer">
           <button id="btn-reset-words" class="text-btn">Restablecer diccionario por defecto</button>
           <button id="btn-save-words-close" class="btn btn-secondary btn-compact">Listo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para Configurar Consecuencia / Sanción -->
+    <div id="penalty-modal" class="modal-overlay hidden">
+      <div class="modal-content card penalty-modal-content">
+        <div class="wordlist-modal-header">
+          <h3>Tipo de Sanción / Consecuencia</h3>
+          <button id="btn-close-penalty-modal" class="btn-icon" title="Cerrar ventana">✕</button>
+        </div>
+        <p class="modal-desc">Elige qué representará cada infracción que cometan los alumnos cuando el semáforo salte a rojo:</p>
+
+        <div class="penalty-options-grid">
+          <button type="button" class="penalty-option-btn active" data-unit="pts" data-label="Puntos Menos" data-tag="pts" data-floating="-1 pt">
+            <span class="option-emoji">📝</span>
+            <span class="option-title">-1 Punto Menos</span>
+            <span class="option-desc">Ideal para evaluación continua</span>
+          </button>
+
+          <button type="button" class="penalty-option-btn" data-unit="tareas" data-label="Tareas Extra" data-tag="tareas" data-floating="+1 tarea">
+            <span class="option-emoji">📚</span>
+            <span class="option-title">+1 Tarea Extra</span>
+            <span class="option-desc">Ejercicios adicionales de clase</span>
+          </button>
+
+          <button type="button" class="penalty-option-btn" data-unit="min" data-label="Minutos Receso" data-tag="min" data-floating="-1 min">
+            <span class="option-emoji">⏱️</span>
+            <span class="option-title">-1 Min de Receso</span>
+            <span class="option-desc">Tiempo de descanso colectivo</span>
+          </button>
+
+          <button type="button" class="penalty-option-btn" data-unit="faltas" data-label="Llamadas de Atención" data-tag="faltas" data-floating="+1 falta">
+            <span class="option-emoji">🛑</span>
+            <span class="option-title">+1 Falta / Aviso</span>
+            <span class="option-desc">Reportes de disciplina</span>
+          </button>
+        </div>
+
+        <div class="custom-penalty-input-wrapper">
+          <label class="custom-label" for="custom-penalty-input">O escribe tu propia consecuencia personalizada:</label>
+          <div class="add-word-form">
+            <input type="text" id="custom-penalty-input" placeholder="Ej: planas, páginas, firmas, ejercicios..." maxlength="25">
+            <button id="btn-apply-custom-penalty" class="btn btn-primary btn-compact">Aplicar</button>
+          </div>
+        </div>
+
+        <div class="wordlist-footer">
+          <button id="btn-save-penalty-close" class="btn btn-secondary full-width">Aceptar</button>
         </div>
       </div>
     </div>

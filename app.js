@@ -46,6 +46,18 @@ class NoiseMonitorApp {
       classroomModeBadge: document.getElementById('classroom-mode-badge'),
       btnModes: document.querySelectorAll('.btn-mode'),
       trafficTopCount: document.getElementById('traffic-top-count'),
+      trafficTopUnit: document.getElementById('traffic-top-unit'),
+      trafficPillLabel: document.getElementById('traffic-pill-label'),
+      trafficPenaltyBtn: document.getElementById('traffic-penalty-btn'),
+      counterUnitTag: document.getElementById('counter-unit-tag'),
+      btnOpenPenaltyCard: document.getElementById('btn-open-penalty-card'),
+      penaltyChips: document.querySelectorAll('.btn-penalty-chip'),
+      penaltyModal: document.getElementById('penalty-modal'),
+      btnClosePenaltyModal: document.getElementById('btn-close-penalty-modal'),
+      btnSavePenaltyClose: document.getElementById('btn-save-penalty-close'),
+      penaltyOptionBtns: document.querySelectorAll('.penalty-option-btn'),
+      customPenaltyInput: document.getElementById('custom-penalty-input'),
+      btnApplyCustomPenalty: document.getElementById('btn-apply-custom-penalty'),
       controlSection: document.querySelector('.control-section'),
       btnToggleControls: document.getElementById('btn-toggle-controls'),
       violationCount: document.getElementById('violation-count'),
@@ -92,13 +104,21 @@ class NoiseMonitorApp {
     this.demoInterval = null;
     this.profanityHoldTimeout = null;
 
+    // Configuración de la sanción / consecuencia elegida por el docente
+    this.penaltyType = localStorage.getItem('noise_penalty_type') || 'pts';
+    this.penaltyTag = localStorage.getItem('noise_penalty_tag') || 'pts';
+    this.penaltyLabel = localStorage.getItem('noise_penalty_label') || 'Puntos Menos';
+    this.penaltyFloating = localStorage.getItem('noise_penalty_floating') || '-1 pt';
+
     // Inicializar detector de voz
     this.speechDetector = new SpeechDetector((data) => this.handleProfanityDetected(data));
 
     this.initEventListeners();
+    this.initPenaltyUI();
     this.initWordlistUI();
     this.initVoiceSensitivityUI();
     this.updateThresholdUI(this.threshold);
+    this.updateViolationDisplay();
   }
 
   // ========================================================
@@ -295,6 +315,133 @@ class NoiseMonitorApp {
     this.dom.voiceLevelBadge.textContent = labels[level] || 'Normal';
   }
 
+  initPenaltyUI() {
+    // Abrir modal desde la píldora superior del semáforo
+    if (this.dom.trafficPenaltyBtn) {
+      this.dom.trafficPenaltyBtn.addEventListener('click', () => {
+        window.audioFeedback.playClickTone();
+        this.openPenaltyModal();
+      });
+    }
+
+    // Abrir modal desde la tarjeta de controles
+    if (this.dom.btnOpenPenaltyCard) {
+      this.dom.btnOpenPenaltyCard.addEventListener('click', () => {
+        window.audioFeedback.playClickTone();
+        this.openPenaltyModal();
+      });
+    }
+
+    // Cerrar modal
+    const closePenalty = () => {
+      window.audioFeedback.playClickTone();
+      if (this.dom.penaltyModal) this.dom.penaltyModal.classList.add('hidden');
+    };
+    if (this.dom.btnClosePenaltyModal) {
+      this.dom.btnClosePenaltyModal.addEventListener('click', closePenalty);
+    }
+    if (this.dom.btnSavePenaltyClose) {
+      this.dom.btnSavePenaltyClose.addEventListener('click', closePenalty);
+    }
+
+    // Chips rápidos en la tarjeta de controles
+    if (this.dom.penaltyChips) {
+      this.dom.penaltyChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          window.audioFeedback.playClickTone();
+          const unit = chip.dataset.unit;
+          if (unit === 'custom') {
+            this.openPenaltyModal();
+            if (this.dom.customPenaltyInput) this.dom.customPenaltyInput.focus();
+            return;
+          }
+          const label = chip.dataset.label;
+          const tag = chip.dataset.tag;
+          const floating = chip.dataset.floating;
+          this.setPenalty(unit, label, tag, floating);
+        });
+      });
+    }
+
+    // Botones de opciones en el Modal
+    if (this.dom.penaltyOptionBtns) {
+      this.dom.penaltyOptionBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          window.audioFeedback.playClickTone();
+          const unit = btn.dataset.unit;
+          const label = btn.dataset.label;
+          const tag = btn.dataset.tag;
+          const floating = btn.dataset.floating;
+          this.setPenalty(unit, label, tag, floating);
+          closePenalty();
+        });
+      });
+    }
+
+    // Aplicar consecuencia personalizada escrita en el input
+    const handleApplyCustom = () => {
+      const val = this.dom.customPenaltyInput ? this.dom.customPenaltyInput.value.trim() : '';
+      if (val) {
+        window.audioFeedback.playClickTone();
+        const shortTag = val.length > 10 ? val.substring(0, 8) + '..' : val;
+        this.setPenalty('custom', val, shortTag, `+1 ${shortTag}`);
+        if (this.dom.customPenaltyInput) this.dom.customPenaltyInput.value = '';
+        closePenalty();
+      }
+    };
+
+    if (this.dom.btnApplyCustomPenalty) {
+      this.dom.btnApplyCustomPenalty.addEventListener('click', handleApplyCustom);
+    }
+    if (this.dom.customPenaltyInput) {
+      this.dom.customPenaltyInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') handleApplyCustom();
+      });
+    }
+
+    // Actualizar UI inicial con la sanción guardada
+    this.updatePenaltyUI();
+  }
+
+  setPenalty(unit, label, tag, floating) {
+    this.penaltyType = unit;
+    this.penaltyLabel = label;
+    this.penaltyTag = tag;
+    this.penaltyFloating = floating;
+
+    localStorage.setItem('noise_penalty_type', unit);
+    localStorage.setItem('noise_penalty_label', label);
+    localStorage.setItem('noise_penalty_tag', tag);
+    localStorage.setItem('noise_penalty_floating', floating);
+
+    this.updatePenaltyUI();
+    this.updateViolationDisplay();
+  }
+
+  openPenaltyModal() {
+    if (!this.dom.penaltyModal) return;
+    this.dom.penaltyModal.classList.remove('hidden');
+    if (this.dom.penaltyOptionBtns) {
+      this.dom.penaltyOptionBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.unit === this.penaltyType);
+      });
+    }
+  }
+
+  updatePenaltyUI() {
+    if (this.dom.trafficTopUnit) {
+      this.dom.trafficTopUnit.textContent = this.penaltyTag;
+    }
+    if (this.dom.counterUnitTag) {
+      this.dom.counterUnitTag.textContent = this.penaltyTag;
+    }
+    if (this.dom.penaltyChips) {
+      this.dom.penaltyChips.forEach(chip => {
+        chip.classList.toggle('active', chip.dataset.unit === this.penaltyType);
+      });
+    }
+  }
+
   updateWordsCount() {
     if (this.dom.badWordsCount) {
       this.dom.badWordsCount.textContent = this.speechDetector.badWords.length;
@@ -349,9 +496,8 @@ class NoiseMonitorApp {
     document.body.classList.add('alert-active');
     
     // Cambiar estado a alerta verbal
-    const prevStatus = this.dom.statusText.textContent;
-    this.dom.statusBadge.className = 'status-badge alert';
-    this.dom.statusText.textContent = `¡Lenguaje inapropiado: "${data.censoredWord}"!`;
+    if (this.dom.statusBadge) this.dom.statusBadge.className = 'status-badge alert';
+    if (this.dom.statusText) this.dom.statusText.textContent = `¡Lenguaje inapropiado: "${data.censoredWord}"!`;
 
     // Registro especial en el log
     this.addProfanityLogEntry(data);
@@ -364,8 +510,8 @@ class NoiseMonitorApp {
     // Regresar al estado regular tras 3 segundos
     this.profanityHoldTimeout = setTimeout(() => {
       if (this.isListening && !this.isPaused) {
-        this.dom.statusBadge.className = 'status-badge listening';
-        this.dom.statusText.textContent = 'Monitoreando ruido del aula...';
+        if (this.dom.statusBadge) this.dom.statusBadge.className = 'status-badge listening';
+        if (this.dom.statusText) this.dom.statusText.textContent = 'Monitoreando ruido del aula...';
         document.body.classList.remove('alert-active');
       }
     }, 3000);
@@ -534,6 +680,8 @@ class NoiseMonitorApp {
   updateViolationDisplay() {
     if (this.dom.violationCount) this.dom.violationCount.textContent = this.violationCount;
     if (this.dom.trafficTopCount) this.dom.trafficTopCount.textContent = this.violationCount;
+    if (this.dom.trafficTopUnit) this.dom.trafficTopUnit.textContent = this.penaltyTag;
+    if (this.dom.counterUnitTag) this.dom.counterUnitTag.textContent = this.penaltyTag;
   }
 
   // ========================================================
@@ -646,16 +794,16 @@ class NoiseMonitorApp {
       this.setTrafficLightState('yellow');
       document.body.classList.remove('alert-active');
       if (this.isListening && !this.isPaused) {
-        this.dom.statusBadge.className = 'status-badge';
-        this.dom.statusText.textContent = (volume >= this.threshold) ? 'Voz detectada (verificando si es bullicio...)' : 'Nivel moderado de sonido';
+        if (this.dom.statusBadge) this.dom.statusBadge.className = 'status-badge';
+        if (this.dom.statusText) this.dom.statusText.textContent = (volume >= this.threshold) ? 'Voz detectada (verificando si es bullicio...)' : 'Nivel moderado de sonido';
       }
     } else {
       // ESTADO VERDE: Silencio o volumen óptimo
       this.setTrafficLightState('green');
       document.body.classList.remove('alert-active');
       if (this.isListening && !this.isPaused) {
-        this.dom.statusBadge.className = 'status-badge listening';
-        this.dom.statusText.textContent = 'Monitoreando ruido del aula...';
+        if (this.dom.statusBadge) this.dom.statusBadge.className = 'status-badge listening';
+        if (this.dom.statusText) this.dom.statusText.textContent = 'Monitoreando ruido del aula...';
       }
     }
   }
@@ -667,7 +815,7 @@ class NoiseMonitorApp {
   }
 
   // ========================================================
-  // REGISTRO DE INFRACCIÓN (+1 PUNTO)
+  // REGISTRO DE INFRACCIÓN (+1 PUNTO / TAREA / SANCION)
   // ========================================================
   registerViolation(volume) {
     this.lastViolationTime = Date.now();
@@ -682,7 +830,7 @@ class NoiseMonitorApp {
     // Reproducir sonido de alerta
     window.audioFeedback.playAlertChime();
 
-    // Crear efecto flotante de +1
+    // Crear efecto flotante de +1 sanción
     this.spawnFloatingPlus();
 
     // Agregar al log
@@ -695,7 +843,7 @@ class NoiseMonitorApp {
   spawnFloatingPlus() {
     const el = document.createElement('div');
     el.className = 'floating-plus';
-    el.textContent = '+1';
+    el.textContent = this.penaltyFloating || '+1';
     this.dom.floatingContainer.appendChild(el);
 
     setTimeout(() => {
@@ -767,10 +915,12 @@ class NoiseMonitorApp {
   // ========================================================
   updateStateUI(state) {
     if (state === 'listening') {
-      this.dom.statusBadge.className = 'status-badge listening';
-      this.dom.statusText.textContent = 'Monitoreando ruido del aula...';
-      this.dom.liveIndicator.className = 'live-pill active';
-      this.dom.liveIndicator.textContent = 'EN VIVO';
+      if (this.dom.statusBadge) this.dom.statusBadge.className = 'status-badge listening';
+      if (this.dom.statusText) this.dom.statusText.textContent = 'Monitoreando ruido del aula...';
+      if (this.dom.liveIndicator) {
+        this.dom.liveIndicator.className = 'live-pill active';
+        this.dom.liveIndicator.textContent = 'EN VIVO';
+      }
       this.dom.btnStart.disabled = true;
       this.dom.btnPause.disabled = false;
       this.dom.btnPause.innerHTML = `
@@ -781,10 +931,12 @@ class NoiseMonitorApp {
         <span>Pausar</span>
       `;
     } else if (state === 'paused') {
-      this.dom.statusBadge.className = 'status-badge paused';
-      this.dom.statusText.textContent = 'Monitoreo pausado';
-      this.dom.liveIndicator.className = 'live-pill';
-      this.dom.liveIndicator.textContent = 'PAUSADO';
+      if (this.dom.statusBadge) this.dom.statusBadge.className = 'status-badge paused';
+      if (this.dom.statusText) this.dom.statusText.textContent = 'Monitoreo pausado';
+      if (this.dom.liveIndicator) {
+        this.dom.liveIndicator.className = 'live-pill';
+        this.dom.liveIndicator.textContent = 'PAUSADO';
+      }
       this.dom.btnStart.disabled = false;
       this.dom.btnPause.disabled = false;
       this.dom.btnPause.innerHTML = `
