@@ -563,7 +563,7 @@ class NoiseMonitorApp {
       this.isListening = true;
       this.isPaused = false;
       this.updateStateUI('listening');
-      this.dom.statusText.textContent = 'Modo Simulación (Generando ruido aleatorio)...';
+      if (this.dom.statusText) this.dom.statusText.textContent = 'Modo Simulación (Generando ruido aleatorio)...';
 
       let simulatedVol = 20;
       let counter = 0;
@@ -579,7 +579,7 @@ class NoiseMonitorApp {
           simulatedVol = Math.floor(Math.random() * 20) + 15; // Silencio (15% - 35%)
         }
 
-        this.updateVisuals(simulatedVol);
+        this.updateVisuals(simulatedVol, 350);
       }, 350);
     } else {
       if (this.demoInterval) {
@@ -707,47 +707,53 @@ class NoiseMonitorApp {
   loop() {
     if (!this.isListening || this.isPaused) return;
 
-    const currentTime = performance.now();
-    const deltaTime = Math.min(100, Math.max(10, currentTime - this.lastLoopTime));
-    this.lastLoopTime = currentTime;
+    try {
+      const currentTime = performance.now();
+      const deltaTime = Math.min(100, Math.max(10, currentTime - this.lastLoopTime));
+      this.lastLoopTime = currentTime;
 
-    this.analyser.getByteTimeDomainData(this.dataArray);
+      this.analyser.getByteTimeDomainData(this.dataArray);
 
-    // Calcular RMS (Root Mean Square) del volumen
-    let sum = 0;
-    const len = this.dataArray.length;
-    for (let i = 0; i < len; i++) {
-      const normalized = (this.dataArray[i] - 128) / 128;
-      sum += normalized * normalized;
+      // Calcular RMS (Root Mean Square) del volumen
+      let sum = 0;
+      const len = this.dataArray.length;
+      for (let i = 0; i < len; i++) {
+        const normalized = (this.dataArray[i] - 128) / 128;
+        sum += normalized * normalized;
+      }
+      const rms = Math.sqrt(sum / len);
+
+      // Aplicar amplificación de ganancia de software
+      const amplifiedRms = rms * this.micGainMultiplier;
+
+      // Curva de compresión no lineal para máxima sensibilidad:
+      let rawVolume = 0;
+      if (amplifiedRms > 0.0008) {
+        rawVolume = Math.min(100, Math.round(Math.pow(amplifiedRms, 0.65) * 165));
+      }
+
+      // Suavizado dinámico: subida rápida para picos de ruido, bajada más suave
+      if (rawVolume > this.currentSmoothVolume) {
+        this.currentSmoothVolume = (this.currentSmoothVolume * 0.3) + (rawVolume * 0.7);
+      } else {
+        this.currentSmoothVolume = (this.currentSmoothVolume * 0.75) + (rawVolume * 0.25);
+      }
+      
+      const displayVolume = Math.round(this.currentSmoothVolume);
+
+      // Informar al detector de voz el nivel de volumen actual para el filtro del Canal 2
+      if (this.speechDetector) {
+        this.speechDetector.setCurrentMicVolume(displayVolume);
+      }
+
+      this.updateVisuals(displayVolume, deltaTime);
+    } catch (err) {
+      console.error('Error en loop de monitoreo:', err);
+    } finally {
+      if (this.isListening && !this.isPaused) {
+        this.animationFrameId = requestAnimationFrame(() => this.loop());
+      }
     }
-    const rms = Math.sqrt(sum / len);
-
-    // Aplicar amplificación de ganancia de software
-    const amplifiedRms = rms * this.micGainMultiplier;
-
-    // Curva de compresión no lineal para máxima sensibilidad:
-    let rawVolume = 0;
-    if (amplifiedRms > 0.0008) {
-      rawVolume = Math.min(100, Math.round(Math.pow(amplifiedRms, 0.65) * 165));
-    }
-
-    // Suavizado dinámico: subida rápida para picos de ruido, bajada más suave
-    if (rawVolume > this.currentSmoothVolume) {
-      this.currentSmoothVolume = (this.currentSmoothVolume * 0.3) + (rawVolume * 0.7);
-    } else {
-      this.currentSmoothVolume = (this.currentSmoothVolume * 0.75) + (rawVolume * 0.25);
-    }
-    
-    const displayVolume = Math.round(this.currentSmoothVolume);
-
-    // Informar al detector de voz el nivel de volumen actual para el filtro del Canal 2
-    if (this.speechDetector) {
-      this.speechDetector.setCurrentMicVolume(displayVolume);
-    }
-
-    this.updateVisuals(displayVolume, deltaTime);
-
-    this.animationFrameId = requestAnimationFrame(() => this.loop());
   }
 
   // ========================================================
@@ -794,17 +800,36 @@ class NoiseMonitorApp {
     // Si hay una alerta de grosería activa en hold, no sobreescribir con ruido
     if (this.profanityHoldTimeout) return;
 
+    // ESTADO DE ALERTA ROJA TRAS INFRACCIÓN (Cooldown visible):
+    // Durante este lapso de 2 segundos, el semáforo se queda en ROJO visiblemente y luego
+    // se reinicia automáticamente para volver a verde si hay calma o acumular si persiste el ruido.
+    const timeSinceViolation = now - this.lastViolationTime;
+    if (timeSinceViolation < this.cooldownDurationMs) {
+      this.setTrafficLightState('red');
+      document.body.classList.add('alert-active');
+      if (this.dom.statusBadge) this.dom.statusBadge.className = 'status-badge alert';
+      if (this.dom.statusText) this.dom.statusText.textContent = '¡Bullicio superado! Sanción registrada';
+      
+      const remainingSec = ((this.cooldownDurationMs - timeSinceViolation) / 1000).toFixed(1);
+      if (this.dom.chatterBar) this.dom.chatterBar.style.width = '100%';
+      if (this.dom.chatterStatus) {
+        this.dom.chatterStatus.textContent = `¡BULLICIO DETECTADO! (${remainingSec}s)`;
+        this.dom.chatterStatus.style.color = '#ef4444';
+      }
+      return;
+    }
+
     if (this.chatterAccumulatedTime >= this.chatterDurationRequired) {
       // ESTADO ROJO: ¡Se confirmó bullicio continuo que superó la tolerancia!
       this.setTrafficLightState('red');
       document.body.classList.add('alert-active');
-      this.dom.statusBadge.className = 'status-badge alert';
-      this.dom.statusText.textContent = '¡Bullicio excesivo sostenido en el aula!';
+      if (this.dom.statusBadge) this.dom.statusBadge.className = 'status-badge alert';
+      if (this.dom.statusText) this.dom.statusText.textContent = '¡Bullicio excesivo sostenido en el aula!';
 
-      // Procesar registro de falta / punto si pasó el cooldown
-      if (now - this.lastViolationTime > this.cooldownDurationMs) {
-        this.registerViolation(volume);
-      }
+      // Registrar la infracción (+1 sanción)
+      this.registerViolation(volume);
+      // Reiniciar la acumulación para permitir que el semáforo se reevalúe y reinicie
+      this.chatterAccumulatedTime = 0;
     } else if (volume >= this.threshold || volume >= yellowLimit || this.chatterAccumulatedTime > 250) {
       // ESTADO AMARILLO: Voz alta, advertencia previa o docente explicando
       this.setTrafficLightState('yellow');
@@ -864,6 +889,7 @@ class NoiseMonitorApp {
   }
 
   spawnFloatingPlus() {
+    if (!this.dom.floatingContainer) return;
     const el = document.createElement('div');
     el.className = 'floating-plus';
     el.textContent = this.penaltyFloating || '+1';
@@ -877,6 +903,7 @@ class NoiseMonitorApp {
   startCooldownTimer() {
     if (this.cooldownInterval) {
       clearInterval(this.cooldownInterval);
+      this.cooldownInterval = null;
     }
 
     const startTime = Date.now();
@@ -887,14 +914,14 @@ class NoiseMonitorApp {
       const remaining = Math.max(0, duration - elapsed);
       const progressPercent = (remaining / duration) * 100;
 
-      this.dom.cooldownProgress.style.width = `${progressPercent}%`;
-      this.dom.cooldownTimer.textContent = `${(remaining / 1000).toFixed(1)}s`;
+      if (this.dom.cooldownProgress) this.dom.cooldownProgress.style.width = `${progressPercent}%`;
+      if (this.dom.cooldownTimer) this.dom.cooldownTimer.textContent = `${(remaining / 1000).toFixed(1)}s`;
 
       if (remaining <= 0) {
         clearInterval(this.cooldownInterval);
         this.cooldownInterval = null;
-        this.dom.cooldownProgress.style.width = '0%';
-        this.dom.cooldownTimer.textContent = '0.0s';
+        if (this.dom.cooldownProgress) this.dom.cooldownProgress.style.width = '0%';
+        if (this.dom.cooldownTimer) this.dom.cooldownTimer.textContent = '0.0s';
       }
     }, 50);
   }
