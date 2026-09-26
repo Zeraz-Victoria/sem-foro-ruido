@@ -75,6 +75,7 @@ class NoiseMonitorApp {
       btnStart: document.getElementById('btn-start'),
       btnPause: document.getElementById('btn-pause'),
       btnReset: document.getElementById('btn-reset'),
+      btnTopReset: document.getElementById('btn-top-reset'),
       btnFullscreen: document.getElementById('btn-fullscreen'),
       btnSoundToggle: document.getElementById('btn-sound-toggle'),
       btnClearLog: document.getElementById('btn-clear-log'),
@@ -128,6 +129,9 @@ class NoiseMonitorApp {
     this.dom.btnStart.addEventListener('click', () => this.startMonitoring());
     this.dom.btnPause.addEventListener('click', () => this.togglePause());
     this.dom.btnReset.addEventListener('click', () => this.resetCounter());
+    if (this.dom.btnTopReset) {
+      this.dom.btnTopReset.addEventListener('click', () => this.resetCounter());
+    }
     this.dom.btnAllowMic.addEventListener('click', () => {
       this.dom.micModal.classList.add('hidden');
       this.startMonitoring();
@@ -481,9 +485,16 @@ class NoiseMonitorApp {
 
     this.violationCount += 1;
     this.updateViolationDisplay();
-    this.dom.violationCount.classList.remove('bump');
-    void this.dom.violationCount.offsetWidth;
-    this.dom.violationCount.classList.add('bump');
+    if (this.dom.violationCount) {
+      this.dom.violationCount.classList.remove('bump');
+      void this.dom.violationCount.offsetWidth;
+      this.dom.violationCount.classList.add('bump');
+    }
+    if (this.dom.trafficTopCount) {
+      this.dom.trafficTopCount.classList.remove('bump');
+      void this.dom.trafficTopCount.offsetWidth;
+      this.dom.trafficTopCount.classList.add('bump');
+    }
 
     // Efecto de sonido buzzer distintivo
     window.audioFeedback.playProfanityBuzzer();
@@ -674,7 +685,12 @@ class NoiseMonitorApp {
     window.audioFeedback.playClickTone();
     this.violationCount = 0;
     this.updateViolationDisplay();
-    this.dom.violationCount.classList.remove('bump');
+    if (this.dom.violationCount) this.dom.violationCount.classList.remove('bump');
+    if (this.dom.trafficTopCount) {
+      this.dom.trafficTopCount.classList.remove('bump');
+      void this.dom.trafficTopCount.offsetWidth;
+      this.dom.trafficTopCount.classList.add('bump');
+    }
   }
 
   updateViolationDisplay() {
@@ -823,9 +839,16 @@ class NoiseMonitorApp {
 
     // Actualizar ambos contadores
     this.updateViolationDisplay();
-    this.dom.violationCount.classList.remove('bump');
-    void this.dom.violationCount.offsetWidth; // Reiniciar animación CSS
-    this.dom.violationCount.classList.add('bump');
+    if (this.dom.violationCount) {
+      this.dom.violationCount.classList.remove('bump');
+      void this.dom.violationCount.offsetWidth;
+      this.dom.violationCount.classList.add('bump');
+    }
+    if (this.dom.trafficTopCount) {
+      this.dom.trafficTopCount.classList.remove('bump');
+      void this.dom.trafficTopCount.offsetWidth;
+      this.dom.trafficTopCount.classList.add('bump');
+    }
 
     // Reproducir sonido de alerta
     window.audioFeedback.playAlertChime();

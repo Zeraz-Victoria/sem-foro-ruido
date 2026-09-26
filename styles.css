@@ -258,17 +258,26 @@ body.alert-active .orb-1 {
   gap: 0.8rem;
 }
 
-.status-badge {
-  display: inline-flex;
+.penalty-pill-container {
+  display: flex;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.45rem 1.1rem;
-  background: #f8fafc;
-  border: 1px solid var(--bg-card-border);
+  gap: 0.5rem;
+  position: relative;
+}
+
+.btn-icon-sm {
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-full);
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: var(--text-body);
+}
+
+.penalty-pill-container .floating-container {
+  position: absolute;
+  top: -12px;
+  left: 100%;
+  margin-left: 0.5rem;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 .traffic-counter-pill {
@@ -604,10 +613,16 @@ body.alert-active .orb-1 {
    ======================================================== */
 .control-section {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: 2fr 1fr;
   width: 100%;
   gap: 1.35rem;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (max-width: 960px) {
+  .control-section {
+    grid-template-columns: 1fr;
+  }
 }
 
 .control-section.hidden-controls {
