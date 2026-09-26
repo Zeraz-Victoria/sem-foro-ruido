@@ -198,8 +198,10 @@ class NoiseMonitorApp {
       this.dom.btnSoundToggle.title = isSoundOn ? 'Sonido de alerta activado' : 'Sonido de alerta silenciado';
     });
 
-    // Limpiar Historial
-    this.dom.btnClearLog.addEventListener('click', () => this.clearLog());
+    // Limpiar Historial (si existe en DOM)
+    if (this.dom.btnClearLog) {
+      this.dom.btnClearLog.addEventListener('click', () => this.clearLog());
+    }
 
     // Modo Demo / Prueba Rápida
     if (this.dom.btnDemoMode) {
@@ -387,8 +389,7 @@ class NoiseMonitorApp {
       const val = this.dom.customPenaltyInput ? this.dom.customPenaltyInput.value.trim() : '';
       if (val) {
         window.audioFeedback.playClickTone();
-        const shortTag = val.length > 10 ? val.substring(0, 8) + '..' : val;
-        this.setPenalty('custom', val, shortTag, `+1 ${shortTag}`);
+        this.setPenalty('custom', val, val, `+1 ${val}`);
         if (this.dom.customPenaltyInput) this.dom.customPenaltyInput.value = '';
         closePenalty();
       }
@@ -529,6 +530,7 @@ class NoiseMonitorApp {
   }
 
   addProfanityLogEntry(data) {
+    if (!this.dom.eventsLog) return;
     const emptyNotice = this.dom.eventsLog.querySelector('.log-empty');
     if (emptyNotice) emptyNotice.remove();
 
@@ -983,7 +985,9 @@ class NoiseMonitorApp {
 
   clearLog() {
     window.audioFeedback.playClickTone();
-    this.dom.eventsLog.innerHTML = '<div class="log-empty">No hay alertas registradas aún. El aula está en calma.</div>';
+    if (this.dom.eventsLog) {
+      this.dom.eventsLog.innerHTML = '<div class="log-empty">No hay alertas registradas aún. El aula está en calma.</div>';
+    }
   }
 
   // ========================================================

@@ -318,9 +318,10 @@ body.alert-active .orb-1 {
 }
 
 .traffic-pill-tag {
-  font-size: 0.82rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: #b91c1c;
+  white-space: nowrap;
 }
 
 .traffic-pill-edit {
