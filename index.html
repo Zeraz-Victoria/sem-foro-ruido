@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=2.3">
+  <link rel="stylesheet" href="styles.css?v=2.4">
 </head>
 <body>
   <div class="app-background">
@@ -26,7 +26,7 @@
           <div class="penalty-pill-container">
             <button type="button" id="traffic-penalty-btn" class="traffic-counter-pill clickable-pill" title="Haz clic para decidir qué sanción se acumula (puntos, tareas, minutos, etc.)">
               <span class="traffic-pill-number" id="traffic-top-count">0</span>
-              <span class="traffic-pill-tag" id="traffic-top-unit">pts</span>
+              <span class="traffic-pill-tag" id="traffic-top-unit">puntos menos</span>
               <span class="traffic-pill-edit" title="Personalizar sanción">✏️</span>
             </button>
             <button type="button" id="btn-top-reset" class="btn-icon btn-icon-sm" title="Reiniciar sanciones a 0" aria-label="Reiniciar contador">
@@ -282,25 +282,25 @@
         <p class="modal-desc">Elige qué representará cada infracción que cometan los alumnos cuando el semáforo salte a rojo:</p>
 
         <div class="penalty-options-grid">
-          <button type="button" class="penalty-option-btn active" data-unit="pts" data-label="Puntos Menos" data-tag="pts" data-floating="-1 pt">
+          <button type="button" class="penalty-option-btn active" data-unit="pts" data-label="Puntos Menos" data-tag="puntos menos" data-floating="-1 punto">
             <span class="option-emoji">📝</span>
             <span class="option-title">-1 Punto Menos</span>
             <span class="option-desc">Ideal para evaluación continua</span>
           </button>
 
-          <button type="button" class="penalty-option-btn" data-unit="tareas" data-label="Tareas Extra" data-tag="tareas" data-floating="+1 tarea">
+          <button type="button" class="penalty-option-btn" data-unit="tareas" data-label="Tareas Extra" data-tag="tareas extra" data-floating="+1 tarea">
             <span class="option-emoji">📚</span>
             <span class="option-title">+1 Tarea Extra</span>
             <span class="option-desc">Ejercicios adicionales de clase</span>
           </button>
 
-          <button type="button" class="penalty-option-btn" data-unit="min" data-label="Minutos Receso" data-tag="min" data-floating="-1 min">
+          <button type="button" class="penalty-option-btn" data-unit="min" data-label="Minutos Receso" data-tag="minutos de receso" data-floating="-1 min">
             <span class="option-emoji">⏱️</span>
             <span class="option-title">-1 Min de Receso</span>
             <span class="option-desc">Tiempo de descanso colectivo</span>
           </button>
 
-          <button type="button" class="penalty-option-btn" data-unit="faltas" data-label="Llamadas de Atención" data-tag="faltas" data-floating="+1 falta">
+          <button type="button" class="penalty-option-btn" data-unit="faltas" data-label="Llamadas de Atención" data-tag="faltas / avisos" data-floating="+1 falta">
             <span class="option-emoji">🛑</span>
             <span class="option-title">+1 Falta / Aviso</span>
             <span class="option-desc">Reportes de disciplina</span>
@@ -339,8 +339,8 @@
     </div>
   </div>
 
-  <script src="audio-feedback.js?v=2.3"></script>
-  <script src="speech-detector.js?v=2.3"></script>
-  <script src="app.js?v=2.3"></script>
+  <script src="audio-feedback.js?v=2.4"></script>
+  <script src="speech-detector.js?v=2.4"></script>
+  <script src="app.js?v=2.4"></script>
 </body>
 </html>

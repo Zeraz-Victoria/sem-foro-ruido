@@ -107,9 +107,14 @@ class NoiseMonitorApp {
 
     // Configuración de la sanción / consecuencia elegida por el docente
     this.penaltyType = localStorage.getItem('noise_penalty_type') || 'pts';
-    this.penaltyTag = localStorage.getItem('noise_penalty_tag') || 'pts';
+    let savedTag = localStorage.getItem('noise_penalty_tag');
+    if (!savedTag || savedTag === 'pts') savedTag = 'puntos menos';
+    else if (savedTag === 'min') savedTag = 'minutos de receso';
+    else if (savedTag === 'tareas') savedTag = 'tareas extra';
+    else if (savedTag === 'faltas') savedTag = 'faltas / avisos';
+    this.penaltyTag = savedTag;
     this.penaltyLabel = localStorage.getItem('noise_penalty_label') || 'Puntos Menos';
-    this.penaltyFloating = localStorage.getItem('noise_penalty_floating') || '-1 pt';
+    this.penaltyFloating = localStorage.getItem('noise_penalty_floating') || '-1 punto';
 
     // Inicializar detector de voz
     this.speechDetector = new SpeechDetector((data) => this.handleProfanityDetected(data));
