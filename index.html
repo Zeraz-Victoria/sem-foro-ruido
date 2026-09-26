@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detector de Ruido Escolar</title>
+  <meta name="description" content="Detector de ruido escolar interactivo para docentes con semáforo gigante, control de bullicio y detección de palabras altisonantes.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-background">
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+  </div>
+
+  <div class="app-container">
+    <!-- Encabezado -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+          </svg>
+        </div>
+        <div>
+          <h1>Detector de Ruido Escolar</h1>
+          <p class="subtitle">Semáforo acústico inteligente y control verbal de aula</p>
+        </div>
+      </div>
+
+        <button id="btn-toggle-controls" class="btn-icon" title="Ocultar o Mostrar Controles Inferiores" aria-label="Alternar controles">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
+        <button id="btn-demo-mode" class="btn-icon" title="Modo Prueba / Simulación de sonido" aria-label="Probar sin micrófono">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+          </svg>
+        </button>
+        <button id="btn-fullscreen" class="btn-icon" title="Modo Pantalla Completa" aria-label="Pantalla completa">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+          </svg>
+        </button>
+        <button id="btn-sound-toggle" class="btn-icon active" title="Sonido de alerta al límite" aria-label="Activar o desactivar sonido">
+          <svg id="sound-icon-on" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Área Principal de Visualización: Semáforo Arriba y Controles Abajo -->
+    <main class="dashboard-grid">
+      <!-- Sección Superior Principal: Semáforo Monumental -->
+      <section class="traffic-section card">
+        <div class="traffic-section-header">
+          <div class="status-badge" id="status-badge">
+            <span class="pulse-dot"></span>
+            <span id="status-text">Listo para iniciar</span>
+          </div>
+
+          <!-- Marcador Superior de Infracciones -->
+          <div class="traffic-counter-pill" title="Infracciones acumuladas">
+            <span class="traffic-pill-label">Infracciones:</span>
+            <span class="traffic-pill-number" id="traffic-top-count">0</span>
+            <span class="traffic-pill-tag">pts</span>
+          </div>
+        </div>
+
+        <div class="traffic-light-wrapper">
+          <div class="traffic-light-housing">
+            <!-- Luz Roja -->
+            <div class="light-unit">
+              <div class="light light-red" id="light-red">
+                <div class="light-reflection"></div>
+                <div class="light-core"></div>
+              </div>
+              <span class="light-label">Límite Superado</span>
+            </div>
+
+            <!-- Luz Amarilla -->
+            <div class="light-unit">
+              <div class="light light-yellow" id="light-yellow">
+                <div class="light-reflection"></div>
+                <div class="light-core"></div>
+              </div>
+              <span class="light-label">Precaución</span>
+            </div>
+
+            <!-- Luz Verde -->
+            <div class="light-unit">
+              <div class="light light-green active" id="light-green">
+                <div class="light-reflection"></div>
+                <div class="light-core"></div>
+              </div>
+              <span class="light-label">Silencio / Normal</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Indicador de Nivel en Vivo (VU meter) -->
+        <div class="vu-container">
+          <div class="vu-labels">
+            <span>Volumen Actual</span>
+            <span id="vu-percentage">0%</span>
+          </div>
+          <div class="vu-track">
+            <div class="vu-bar" id="vu-bar"></div>
+            <!-- Marcador visual del umbral establecido -->
+            <div class="threshold-indicator" id="threshold-marker" title="Límite máximo fijado por el docente">
+              <span class="threshold-tag">Límite</span>
+            </div>
+          </div>
+
+          <!-- Indicador de Acumulación de Bullicio Sostenido -->
+          <div class="chatter-meter-wrapper">
+            <div class="chatter-labels">
+              <span>Acumulación de Bullicio Sostenido</span>
+              <span id="chatter-status">Tranquilo</span>
+            </div>
+            <div class="chatter-track">
+              <div class="chatter-bar" id="chatter-bar"></div>
+            </div>
+            <span class="chatter-hint">✨ Tolera la voz del docente y preguntas de alumnos; el rojo solo salta si el bullicio es ininterrumpido.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sección Derecha: Contador de Faltas y Panel del Docente -->
+      <section class="control-section">
+        <!-- Tarjeta de Puntos / Contador -->
+        <div class="counter-card card">
+          <div class="counter-header">
+            <div>
+              <h3>Infracciones de Ruido</h3>
+              <p class="card-caption">Veces que se alcanzó el nivel rojo</p>
+            </div>
+            <span class="live-pill" id="live-indicator">EN PAUSA</span>
+          </div>
+
+          <div class="counter-display">
+            <div class="counter-value-wrapper">
+              <span class="counter-number" id="violation-count">0</span>
+              <span class="counter-tag">puntos</span>
+            </div>
+            <div id="floating-plus-container" class="floating-container"></div>
+          </div>
+
+          <div class="cooldown-bar-wrapper" id="cooldown-wrapper">
+            <div class="cooldown-label">
+              <span>Tiempo de gracia / enfriamiento</span>
+              <span id="cooldown-timer">0.0s</span>
+            </div>
+            <div class="cooldown-track">
+              <div class="cooldown-progress" id="cooldown-progress"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tarjeta de Ajustes del Docente: Canales Duales -->
+        <div class="settings-card card">
+          <div class="settings-card-header">
+            <h3>Calibración Dual del Micrófono</h3>
+            <p class="card-caption">Ajusta la sensibilidad por separado: una para el ruido y otra para las palabras.</p>
+          </div>
+
+          <!-- CANAL 1: SENSIBILIDAD DE RUIDO AMBIENTAL -->
+          <div class="channel-block channel-noise">
+            <div class="channel-title-row">
+              <div class="channel-badge badge-noise">Canal 1</div>
+              <h4 class="channel-name">🔊 Sensibilidad de Ruido Acústico</h4>
+            </div>
+
+            <!-- Selector de Dinámica de Clase (Filtro Anti-Voz del Maestro) -->
+            <div class="classroom-mode-wrapper">
+              <div class="slider-header">
+                <span class="slider-title">Dinámica de Clase (Tolerancia)</span>
+                <span class="badge-mode" id="classroom-mode-badge">👨‍🏫 Explicación</span>
+              </div>
+              <div class="classroom-mode-buttons">
+                <button type="button" class="btn-mode active" data-time="2000" title="Tolera que el maestro explique y preguntas de alumnos. Requiere 2.0s continuos de bullicio para rojo">
+                  👨‍🏫 Explicación (2.0s)
+                </button>
+                <button type="button" class="btn-mode" data-time="2800" title="Permite murmullos de trabajo entre bancas. Requiere 2.8s continuos de bullicio">
+                  👥 Grupos (2.8s)
+                </button>
+                <button type="button" class="btn-mode" data-time="800" title="Silencio estricto. Penaliza ruidos de más de 0.8s">
+                  🤫 Examen (0.8s)
+                </button>
+              </div>
+            </div>
+
+            <!-- Selector de Ganancia / Boost de Micrófono -->
+            <div class="gain-control-wrapper">
+              <div class="slider-header">
+                <span class="slider-title">Amplificación de Entrada</span>
+                <span class="badge-gain" id="gain-badge">4x (Alta)</span>
+              </div>
+              <div class="gain-buttons-group">
+                <button type="button" class="btn-gain" data-gain="1.5">1x Normal</button>
+                <button type="button" class="btn-gain active" data-gain="4.0">4x Alta</button>
+                <button type="button" class="btn-gain" data-gain="7.5">7x Super</button>
+                <button type="button" class="btn-gain" data-gain="12.0">12x Ultra</button>
+              </div>
+            </div>
+
+            <div class="slider-wrapper">
+              <div class="slider-header">
+                <span class="slider-title">Umbral de Ruido (Límite Rojo)</span>
+                <span class="slider-value" id="sensitivity-value">35%</span>
+              </div>
+              <input 
+                type="range" 
+                id="sensitivity-slider" 
+                class="custom-slider" 
+                min="5" 
+                max="95" 
+                value="35" 
+                step="1"
+              >
+              <div class="slider-ticks">
+                <span>Muy estricto (Murmullos)</span>
+                <span>Moderado</span>
+                <span>Permisivo (Voces fuertes)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- CANAL 2: SENSIBILIDAD DE PALABRAS ALTISONANTES -->
+          <div class="channel-block channel-voice">
+            <div class="channel-title-row">
+              <div class="channel-badge badge-voice">Canal 2</div>
+              <div class="channel-voice-header">
+                <div class="voice-title-group">
+                  <span class="voice-icon-indicator" id="voice-indicator-dot"></span>
+                  <h4 class="channel-name">🗣️ Sensibilidad de Groserías</h4>
+                </div>
+                <label class="toggle-switch" title="Activar/Desactivar detección de palabras altisonantes">
+                  <input type="checkbox" id="toggle-profanity" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="voice-sensitivity-wrapper">
+              <div class="slider-header">
+                <span class="slider-title">Nivel de Detección Vocal</span>
+                <span class="badge-voice-level" id="voice-level-badge">Normal</span>
+              </div>
+              <div class="voice-level-buttons">
+                <button type="button" class="btn-voice-level" data-level="high" title="Detecta groserías incluso en murmullos o susurros">
+                  👂 Susurros (Alta)
+                </button>
+                <button type="button" class="btn-voice-level active" data-level="medium" title="Detecta groserías en tono de conversación habitual">
+                  🗣️ Voz Normal (Media)
+                </button>
+                <button type="button" class="btn-voice-level" data-level="loud" title="Solo sanciona si la grosería se dijo gritando o con voz fuerte">
+                  📢 Voz Alta (Baja)
+                </button>
+              </div>
+            </div>
+            
+            <div class="voice-actions">
+              <button id="btn-open-wordlist" class="btn-subtle" title="Ver y editar vocabulario prohibido">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 20h9"/>
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                </svg>
+                <span>Editar palabras (<span id="bad-words-count">0</span>)</span>
+              </button>
+              <button id="btn-test-profanity" class="btn-subtle" title="Simular que alguien dijo una grosería">
+                <span>Probar detección</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Botones de Acción Primarios -->
+          <div class="action-buttons-group">
+            <button id="btn-start" class="btn btn-primary">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+              <span>Iniciar Medición</span>
+            </button>
+
+            <button id="btn-pause" class="btn btn-secondary" disabled>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="4" width="4" height="16"/>
+                <rect x="14" y="4" width="4" height="16"/>
+              </svg>
+              <span>Pausar</span>
+            </button>
+
+            <button id="btn-reset" class="btn btn-outline" title="Reiniciar contador a 0">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/>
+              </svg>
+              <span>Reiniciar Puntos</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Registro de Eventos Recientes -->
+        <div class="log-card card">
+          <div class="log-header">
+            <h4>Registro de Alertas</h4>
+            <button id="btn-clear-log" class="text-btn">Borrar historial</button>
+          </div>
+          <div class="log-list" id="events-log">
+            <div class="log-empty">No hay alertas registradas aún. El aula está en calma.</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Modal de Palabras Prohibidas -->
+    <div id="wordlist-modal" class="modal-overlay hidden">
+      <div class="modal-content card wordlist-modal-content">
+        <div class="wordlist-modal-header">
+          <h3>Palabras Prohibidas Configurales</h3>
+          <button id="btn-close-wordlist" class="btn-icon" title="Cerrar ventana">✕</button>
+        </div>
+        <p class="modal-desc">El semáforo se pondrá en rojo y registrará un punto si los alumnos pronuncian cualquiera de estos términos:</p>
+        
+        <!-- Formulario para agregar nueva palabra -->
+        <div class="add-word-form">
+          <input type="text" id="input-new-word" placeholder="Ejemplo: palabra..." maxlength="30">
+          <button id="btn-add-word" class="btn btn-primary btn-compact">Agregar</button>
+        </div>
+
+        <!-- Lista de etiquetas de palabras -->
+        <div class="words-tags-container" id="words-tags-container"></div>
+
+        <div class="wordlist-footer">
+          <button id="btn-reset-words" class="text-btn">Restablecer diccionario por defecto</button>
+          <button id="btn-save-words-close" class="btn btn-secondary btn-compact">Listo</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de Permisos si no hay audio -->
+    <div id="mic-modal" class="modal-overlay hidden">
+      <div class="modal-content card">
+        <div class="modal-icon">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </div>
+        <h3>Permiso de Micrófono Requerido</h3>
+        <p>Para medir el volumen del aula en tiempo real, tu navegador necesita permiso para acceder al micrófono. El audio se procesa únicamente en tu dispositivo y nunca se graba ni se transmite.</p>
+        <button id="btn-allow-mic" class="btn btn-primary full-width">Conceder Permiso y Comenzar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="audio-feedback.js"></script>
+  <script src="speech-detector.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
