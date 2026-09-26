@@ -864,28 +864,51 @@ class NoiseMonitorApp {
 
     // Actualizar ambos contadores
     this.updateViolationDisplay();
-    if (this.dom.violationCount) {
-      this.dom.violationCount.classList.remove('bump');
-      void this.dom.violationCount.offsetWidth;
-      this.dom.violationCount.classList.add('bump');
-    }
-    if (this.dom.trafficTopCount) {
-      this.dom.trafficTopCount.classList.remove('bump');
-      void this.dom.trafficTopCount.offsetWidth;
-      this.dom.trafficTopCount.classList.add('bump');
+
+    try {
+      if (this.dom.violationCount) {
+        this.dom.violationCount.classList.remove('bump');
+        void this.dom.violationCount.offsetWidth;
+        this.dom.violationCount.classList.add('bump');
+      }
+      if (this.dom.trafficTopCount) {
+        this.dom.trafficTopCount.classList.remove('bump');
+        void this.dom.trafficTopCount.offsetWidth;
+        this.dom.trafficTopCount.classList.add('bump');
+      }
+    } catch (e) {
+      console.warn('Animation bump error:', e);
     }
 
     // Reproducir sonido de alerta
-    window.audioFeedback.playAlertChime();
+    try {
+      if (window.audioFeedback) {
+        window.audioFeedback.playAlertChime();
+      }
+    } catch (e) {
+      console.warn('Audio feedback error:', e);
+    }
 
     // Crear efecto flotante de +1 sanción
-    this.spawnFloatingPlus();
+    try {
+      this.spawnFloatingPlus();
+    } catch (e) {
+      console.warn('Spawn floating plus error:', e);
+    }
 
     // Agregar al log
-    this.addLogEntry(volume);
+    try {
+      this.addLogEntry(volume);
+    } catch (e) {
+      console.warn('Add log entry error:', e);
+    }
 
     // Iniciar barra de tiempo de enfriamiento (cooldown)
-    this.startCooldownTimer();
+    try {
+      this.startCooldownTimer();
+    } catch (e) {
+      console.warn('Cooldown timer error:', e);
+    }
   }
 
   spawnFloatingPlus() {
@@ -896,7 +919,9 @@ class NoiseMonitorApp {
     this.dom.floatingContainer.appendChild(el);
 
     setTimeout(() => {
-      el.remove();
+      if (el && el.remove) {
+        el.remove();
+      }
     }, 1200);
   }
 
@@ -927,6 +952,7 @@ class NoiseMonitorApp {
   }
 
   addLogEntry(volume) {
+    if (!this.dom.eventsLog) return;
     // Si existe el aviso de "vacío", quitarlo
     const emptyNotice = this.dom.eventsLog.querySelector('.log-empty');
     if (emptyNotice) {

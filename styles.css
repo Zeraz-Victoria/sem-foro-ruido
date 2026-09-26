@@ -263,6 +263,7 @@ body.alert-active .orb-1 {
   align-items: center;
   gap: 0.5rem;
   position: relative;
+  flex-wrap: nowrap;
 }
 
 .btn-icon-sm {
