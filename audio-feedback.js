@@ -9,12 +9,21 @@ class AudioFeedback {
   }
 
   init() {
+    if (window.noiseApp && window.noiseApp.audioContext && window.noiseApp.audioContext.state !== 'closed') {
+      this.audioCtx = window.noiseApp.audioContext;
+      if (this.audioCtx.state === 'suspended') {
+        this.audioCtx.resume().catch(() => {});
+      }
+      return;
+    }
     if (!this.audioCtx) {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-      this.audioCtx = new AudioContextClass();
+      if (AudioContextClass) {
+        this.audioCtx = new AudioContextClass();
+      }
     }
-    if (this.audioCtx.state === 'suspended') {
-      this.audioCtx.resume();
+    if (this.audioCtx && this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume().catch(() => {});
     }
   }
 

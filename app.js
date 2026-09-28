@@ -116,6 +116,10 @@ class NoiseMonitorApp {
     this.penaltyLabel = localStorage.getItem('noise_penalty_label') || 'Puntos Menos';
     this.penaltyFloating = localStorage.getItem('noise_penalty_floating') || '-1 punto';
 
+    // Detectar iOS / iPadOS para prevenir crasheos de WebKit por SpeechRecognition
+    this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
     // Inicializar detector de voz
     this.speechDetector = new SpeechDetector((data) => this.handleProfanityDetected(data));
 
@@ -216,6 +220,11 @@ class NoiseMonitorApp {
     // Toggle de Detección de Groserías
     if (this.dom.toggleProfanity) {
       this.dom.toggleProfanity.addEventListener('change', (e) => {
+        if (this.isIOS) {
+          e.target.checked = false;
+          alert("La detección de palabras por voz está restringida en iPhone/iPad debido a que Apple WebKit no admite captura de micrófono y transcripción continua al mismo tiempo.");
+          return;
+        }
         const isEnabled = e.target.checked;
         this.speechDetector.setEnabled(isEnabled);
         this.dom.voiceIndicatorDot.className = `voice-icon-indicator ${isEnabled ? 'active' : 'disabled'}`;
@@ -307,6 +316,25 @@ class NoiseMonitorApp {
   }
 
   initVoiceSensitivityUI() {
+    if (this.isIOS) {
+      if (this.dom.toggleProfanity) {
+        this.dom.toggleProfanity.checked = false;
+        this.dom.toggleProfanity.disabled = true;
+      }
+      if (this.dom.voiceLevelBadge) {
+        this.dom.voiceLevelBadge.textContent = 'No disp. en iOS';
+      }
+      const voiceBlock = document.querySelector('.channel-voice');
+      if (voiceBlock && !voiceBlock.querySelector('.ios-voice-notice')) {
+        const notice = document.createElement('div');
+        notice.className = 'ios-voice-notice';
+        notice.style.cssText = 'font-size: 0.8rem; color: #92400e; background: #fef3c7; border: 1px solid #fde68a; padding: 8px 12px; border-radius: 8px; margin-top: 10px; line-height: 1.4;';
+        notice.innerHTML = '<strong>📱 Nota para iPhone/iPad:</strong> El Canal 2 (Groserías) no está disponible en iOS debido a que el sistema de Apple bloquea el audio si se usa reconocimiento continuo de voz junto con el micrófono. <strong>El Canal 1 (Medición de Ruido y Bullicio) funciona al 100%.</strong>';
+        voiceBlock.appendChild(notice);
+      }
+      return;
+    }
+
     const currentLevel = this.speechDetector.voiceSensitivity;
     if (this.dom.btnVoiceLevels) {
       this.dom.btnVoiceLevels.forEach(b => {
@@ -631,17 +659,33 @@ class NoiseMonitorApp {
         throw new Error("El navegador no soporta captura de audio.");
       }
 
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: false,
-          noiseSuppression: false,
-          autoGainControl: true // Permite al sistema operativo amplificar micrófonos sordos o lejanos
-        },
-        video: false
-      });
+      let stream = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: true
+          },
+          video: false
+        });
+      } catch (errAdv) {
+        // Fallback para Safari iOS en caso de no tolerar constraints avanzados
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+          video: false
+        });
+      }
+      this.mediaStream = stream;
 
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       this.audioContext = new AudioContextClass();
+
+      if (this.audioContext.state === 'suspended') {
+        try {
+          await this.audioContext.resume();
+        } catch (e) {}
+      }
 
       const source = this.audioContext.createMediaStreamSource(this.mediaStream);
       this.analyser = this.audioContext.createAnalyser();
@@ -656,7 +700,10 @@ class NoiseMonitorApp {
       this.isListening = true;
       this.isPaused = false;
       this.updateStateUI('listening');
-      this.speechDetector.start();
+      
+      if (this.speechDetector && this.speechDetector.isSupported && this.speechDetector.isEnabled) {
+        this.speechDetector.start();
+      }
       this.loop();
 
     } catch (err) {
@@ -674,12 +721,16 @@ class NoiseMonitorApp {
     if (!this.isPaused) {
       // Pausar
       this.isPaused = true;
-      this.speechDetector.stop();
+      if (this.speechDetector && this.speechDetector.isSupported) {
+        this.speechDetector.stop();
+      }
       if (this.animationFrameId) {
         cancelAnimationFrame(this.animationFrameId);
       }
       if (this.audioContext && this.audioContext.state === 'running') {
-        this.audioContext.suspend();
+        try {
+          this.audioContext.suspend();
+        } catch (e) {}
       }
       this.updateStateUI('paused');
     } else {

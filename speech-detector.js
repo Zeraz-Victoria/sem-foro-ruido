@@ -8,6 +8,7 @@ class SpeechDetector {
     this.recognition = null;
     this.isListening = false;
     this.isEnabled = true; // El docente puede apagar o prender esta función
+    this.isSupported = true;
     this.restartTimeout = null;
 
     // Diccionario base exhaustivo de palabras altisonantes, groserías y modismos escolares
@@ -143,66 +144,85 @@ class SpeechDetector {
   }
 
   initRecognition() {
-    const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognitionClass) {
-      console.warn("Web Speech API no está soportada en este navegador.");
+    // Detectar iOS / iPadOS (Safari y Chrome en iOS usan el motor WebKit de Apple)
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    if (isIOS) {
+      console.warn("SpeechDetector: Desactivado en iOS para evitar colisión de hardware de audio en WebKit.");
+      this.isSupported = false;
+      this.isEnabled = false;
       return;
     }
 
-    this.recognition = new SpeechRecognitionClass();
-    this.recognition.continuous = true;
-    this.recognition.interimResults = true;
-    this.recognition.lang = 'es-MX'; // Idioma español México
-    this.recognition.maxAlternatives = 5; // Evaluar hasta 5 interpretaciones fonéticas de Google
+    const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionClass) {
+      console.warn("Web Speech API no está soportada en este navegador.");
+      this.isSupported = false;
+      this.isEnabled = false;
+      return;
+    }
 
-    this.recognition.onresult = (event) => {
-      if (!this.isEnabled) return;
+    this.isSupported = true;
+    try {
+      this.recognition = new SpeechRecognitionClass();
+      this.recognition.continuous = true;
+      this.recognition.interimResults = true;
+      this.recognition.lang = 'es-MX'; // Idioma español México
+      this.recognition.maxAlternatives = 2; // Suficiente para detectar coincidencias
 
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        const result = event.results[i];
-        // Inspeccionar todas las alternativas que Google Cloud reconoció
-        for (let alt = 0; alt < result.length; ++alt) {
-          const transcript = result[alt].transcript;
-          const detected = this.analyzeTranscript(transcript);
-          if (detected) {
-            break; // Si ya se detectó en esta alternativa, continuar al siguiente resultado
-          }
-        }
-      }
-    };
+      this.recognition.onresult = (event) => {
+        if (!this.isEnabled || !this.isListening) return;
 
-    // Reinicio automático continuo si se detiene por silencio
-    this.recognition.onend = () => {
-      if (this.isListening && this.isEnabled) {
-        clearTimeout(this.restartTimeout);
-        this.restartTimeout = setTimeout(() => {
-          if (this.isListening && this.isEnabled) {
-            try {
-              this.recognition.start();
-            } catch (e) {
-              // Si aún estaba cerrando, reintentar en 250ms
-              this.restartTimeout = setTimeout(() => {
-                if (this.isListening && this.isEnabled) {
-                  try { this.recognition.start(); } catch (err) {}
-                }
-              }, 250);
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const result = event.results[i];
+          // Inspeccionar alternativas
+          for (let alt = 0; alt < result.length; ++alt) {
+            const transcript = result[alt].transcript;
+            const detected = this.analyzeTranscript(transcript);
+            if (detected) {
+              break;
             }
           }
-        }, 120);
-      }
-    };
+        }
+      };
 
-    this.recognition.onerror = (event) => {
-      // Ignorar errores benignos como 'no-speech'
-      if (event.error !== 'no-speech') {
-        console.warn("Evento de voz:", event.error);
-      }
-    };
+      // Reinicio automático continuo si se detiene por silencio
+      this.recognition.onend = () => {
+        if (this.isListening && this.isEnabled && this.isSupported) {
+          clearTimeout(this.restartTimeout);
+          this.restartTimeout = setTimeout(() => {
+            if (this.isListening && this.isEnabled && this.isSupported) {
+              try {
+                this.recognition.start();
+              } catch (e) {
+                this.restartTimeout = setTimeout(() => {
+                  if (this.isListening && this.isEnabled && this.isSupported) {
+                    try { this.recognition.start(); } catch (err) {}
+                  }
+                }, 500);
+              }
+            }
+          }, 300);
+        }
+      };
+
+      this.recognition.onerror = (event) => {
+        if (event.error !== 'no-speech') {
+          console.warn("Evento de voz:", event.error);
+        }
+      };
+    } catch (e) {
+      console.warn("Error al inicializar SpeechRecognition:", e);
+      this.isSupported = false;
+      this.isEnabled = false;
+    }
   }
 
   start() {
+    if (!this.isSupported || !this.isEnabled) return;
     this.isListening = true;
-    if (this.recognition && this.isEnabled) {
+    if (this.recognition) {
       try {
         this.recognition.start();
       } catch (e) {
@@ -222,6 +242,10 @@ class SpeechDetector {
   }
 
   setEnabled(val) {
+    if (!this.isSupported) {
+      this.isEnabled = false;
+      return;
+    }
     this.isEnabled = val;
     if (this.isEnabled && this.isListening) {
       this.start();
