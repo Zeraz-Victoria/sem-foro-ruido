@@ -550,14 +550,17 @@ class NoiseMonitorApp {
     // Cancelar cualquier timeout anterior
     if (this.profanityHoldTimeout) {
       clearTimeout(this.profanityHoldTimeout);
+      this.profanityHoldTimeout = null;
     }
 
     // Regresar al estado regular tras 3 segundos
     this.profanityHoldTimeout = setTimeout(() => {
+      this.profanityHoldTimeout = null; // Liberar el bloqueo para reanudar actualización normal
       if (this.isListening && !this.isPaused) {
         if (this.dom.statusBadge) this.dom.statusBadge.className = 'status-badge listening';
         if (this.dom.statusText) this.dom.statusText.textContent = 'Monitoreando ruido del aula...';
         document.body.classList.remove('alert-active');
+        this.setTrafficLightState('green');
       }
     }, 3000);
   }
@@ -694,6 +697,18 @@ class NoiseMonitorApp {
 
       source.connect(this.analyser);
 
+      // Si el sistema operativo interrumpe o apaga la pista tras horas de uso, reiniciar automáticamente
+      if (this.mediaStream) {
+        this.mediaStream.getAudioTracks().forEach(track => {
+          track.onended = () => {
+            console.warn("Pista de micrófono finalizada por el sistema. Reconectando...");
+            if (this.isListening && !this.isPaused) {
+              this.startMonitoring();
+            }
+          };
+        });
+      }
+
       const bufferLength = this.analyser.frequencyBinCount;
       this.dataArray = new Uint8Array(bufferLength);
 
@@ -721,6 +736,10 @@ class NoiseMonitorApp {
     if (!this.isPaused) {
       // Pausar
       this.isPaused = true;
+      if (this.profanityHoldTimeout) {
+        clearTimeout(this.profanityHoldTimeout);
+        this.profanityHoldTimeout = null;
+      }
       if (this.speechDetector && this.speechDetector.isSupported) {
         this.speechDetector.stop();
       }
@@ -742,6 +761,16 @@ class NoiseMonitorApp {
   resetCounter() {
     window.audioFeedback.playClickTone();
     this.violationCount = 0;
+    this.chatterAccumulatedTime = 0;
+    this.lastViolationTime = 0;
+    if (this.profanityHoldTimeout) {
+      clearTimeout(this.profanityHoldTimeout);
+      this.profanityHoldTimeout = null;
+    }
+    if (this.isListening && !this.isPaused) {
+      this.setTrafficLightState('green');
+      document.body.classList.remove('alert-active');
+    }
     this.updateViolationDisplay();
     if (this.dom.violationCount) this.dom.violationCount.classList.remove('bump');
     if (this.dom.trafficTopCount) {
@@ -766,6 +795,11 @@ class NoiseMonitorApp {
     if (!this.isListening || this.isPaused) return;
 
     try {
+      // Reanudar AudioContext si el navegador lo suspendió tras horas de inactividad o ahorro de batería
+      if (this.audioContext && this.audioContext.state === 'suspended') {
+        this.audioContext.resume().catch(() => {});
+      }
+
       const currentTime = performance.now();
       const deltaTime = Math.min(100, Math.max(10, currentTime - this.lastLoopTime));
       this.lastLoopTime = currentTime;
