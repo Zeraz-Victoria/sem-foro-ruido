@@ -774,7 +774,32 @@ class NoiseMonitorApp {
     const yellowLimit = this.threshold * 0.65;
     const now = Date.now();
 
+    // DETERMINAR ESTADO DEL SEMÁFORO
+    // Si hay una alerta de grosería activa en hold, no sobreescribir con ruido
+    if (this.profanityHoldTimeout) return;
+
+    // ESTADO DE ALERTA ROJA TRAS INFRACCIÓN (Cooldown visible):
+    // Durante este lapso de 2 segundos, el semáforo se queda en ROJO visiblemente para advertir al grupo.
+    // Durante la alerta, el acumulador de tiempo se congela en 0 para evitar que salte otra sanción inmediata en bucle.
+    const timeSinceViolation = now - this.lastViolationTime;
+    if (timeSinceViolation < this.cooldownDurationMs) {
+      this.setTrafficLightState('red');
+      document.body.classList.add('alert-active');
+      if (this.dom.statusBadge) this.dom.statusBadge.className = 'status-badge alert';
+      if (this.dom.statusText) this.dom.statusText.textContent = '¡Bullicio superado! Sanción registrada';
+      
+      const remainingSec = ((this.cooldownDurationMs - timeSinceViolation) / 1000).toFixed(1);
+      if (this.dom.chatterBar) this.dom.chatterBar.style.width = '100%';
+      if (this.dom.chatterStatus) {
+        this.dom.chatterStatus.textContent = `¡BULLICIO DETECTADO! (${remainingSec}s)`;
+        this.dom.chatterStatus.style.color = '#ef4444';
+      }
+      this.chatterAccumulatedTime = 0;
+      return;
+    }
+
     // FILTRO DE PERSISTENCIA TEMPORAL:
+    // Solo cuando NO estamos en alerta roja, medimos el bullicio nuevo.
     // Si el volumen supera el umbral, acumulamos tiempo de bullicio.
     // Si el volumen baja (pausas de respiración del docente o silencio), se disipa rápidamente.
     if (volume >= this.threshold) {
@@ -803,29 +828,6 @@ class NoiseMonitorApp {
       }
     }
 
-    // DETERMINAR ESTADO DEL SEMÁFORO
-    // Si hay una alerta de grosería activa en hold, no sobreescribir con ruido
-    if (this.profanityHoldTimeout) return;
-
-    // ESTADO DE ALERTA ROJA TRAS INFRACCIÓN (Cooldown visible):
-    // Durante este lapso de 2 segundos, el semáforo se queda en ROJO visiblemente y luego
-    // se reinicia automáticamente para volver a verde si hay calma o acumular si persiste el ruido.
-    const timeSinceViolation = now - this.lastViolationTime;
-    if (timeSinceViolation < this.cooldownDurationMs) {
-      this.setTrafficLightState('red');
-      document.body.classList.add('alert-active');
-      if (this.dom.statusBadge) this.dom.statusBadge.className = 'status-badge alert';
-      if (this.dom.statusText) this.dom.statusText.textContent = '¡Bullicio superado! Sanción registrada';
-      
-      const remainingSec = ((this.cooldownDurationMs - timeSinceViolation) / 1000).toFixed(1);
-      if (this.dom.chatterBar) this.dom.chatterBar.style.width = '100%';
-      if (this.dom.chatterStatus) {
-        this.dom.chatterStatus.textContent = `¡BULLICIO DETECTADO! (${remainingSec}s)`;
-        this.dom.chatterStatus.style.color = '#ef4444';
-      }
-      return;
-    }
-
     if (this.chatterAccumulatedTime >= this.chatterDurationRequired) {
       // ESTADO ROJO: ¡Se confirmó bullicio continuo que superó la tolerancia!
       this.setTrafficLightState('red');
@@ -835,7 +837,7 @@ class NoiseMonitorApp {
 
       // Registrar la infracción (+1 sanción)
       this.registerViolation(volume);
-      // Reiniciar la acumulación para permitir que el semáforo se reevalúe y reinicie
+      // Reiniciar la acumulación para el siguiente ciclo
       this.chatterAccumulatedTime = 0;
     } else if (volume >= this.threshold || volume >= yellowLimit || this.chatterAccumulatedTime > 250) {
       // ESTADO AMARILLO: Voz alta, advertencia previa o docente explicando
